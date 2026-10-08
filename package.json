@@ -1,0 +1,82 @@
+{
+  "name": "@argszero/dsh-destructive-command-guard",
+  "description": "Refuses a shell command before it runs when it deletes something it did not name. In PowerShell variable names are case-insensitive and the automatic variables are read-only, so `$home = \"<scratch>\"` followed by `Remove-Item $home -Recurse -Force` removes the operator's real profile: the assignment fails silently, `$ErrorActionPreference` defaults to `Continue`, and the command contains no dangerous path for a pattern to find. This plugin decides on the two facts that are certain from the text \u2014 an automatic-variable name assigned and then used as a deletion operand, and a recursive or forced deletion whose operand is a home reference ($HOME, $home, ~, $env:USERPROFILE) or a filesystem root \u2014 and refuses the call at tools/pre-execute, before the body runs and before any approval prompt. It refuses nothing else: deleting a variable, however ordinary, is not what makes a command dangerous. Zero runtime dependencies, no sandbox changes, fail-open when its own scan errors.",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/argszero/dsh-destructive-command-guard.git"
+  },
+  "homepage": "https://github.com/argszero/dsh-destructive-command-guard#readme",
+  "bugs": {
+    "url": "https://github.com/argszero/dsh-destructive-command-guard/issues"
+  },
+  "keywords": [
+    "cordis",
+    "deepseek-harness",
+    "dsh",
+    "plugin",
+    "guard",
+    "tools",
+    "pre-execute",
+    "powershell",
+    "shell",
+    "destructive",
+    "rm",
+    "remove-item",
+    "safety",
+    "windows",
+    "fs"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-tools": ">=0.1.7-rc.2 <0.2.0 || >=0.2.0-rc.2 <0.2.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-agent": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-llm": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-session": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-tools": "^0.2.0-rc.2",
+    "@types/node": "^24.19.1",
+    "semver": "^7.8.5",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc",
+    "pretest": "tsc",
+    "test": "node --test \"test/*.spec.mjs\"",
+    "test:inject": "node scripts/inject-defects.mjs",
+    "test:probe-lines": "node scripts/probe-lines.mjs",
+    "prepublishOnly": "tsc"
+  },
+  "engines": {
+    "node": "^22.19 || >=24"
+  }
+}

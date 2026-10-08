@@ -1,0 +1,52 @@
+# The @argszero/dsh-destructive-command-guard bundle patch: mount and go.
+#
+# One report (#9173) describes a session that deleted the operator's real user
+# profile, from a command that contains no dangerous path. An agent preparing a
+# fixture wrote `$home = "<workspace>/out/fakehome"` and then
+# `Remove-Item $home -Recurse -Force`. PowerShell variable names are
+# case-insensitive and the automatic variables are read-only, so `$home` *is*
+# `$HOME`: the assignment failed as a non-terminating error, `$ErrorActionPreference`
+# defaults to `Continue`, the next statement ran anyway, and it removed the real
+# profile. Every path in the command is a workspace path, so nothing a path
+# pattern or a careful reading can find is wrong with it — the dangerous fact is
+# about the language.
+#
+# `tools/pre-execute` is the seam for exactly this, and it is the seam this
+# plugin uses rather than `ctx.tools.guard`:
+#
+#   const gate = await this.ctx.waterfall(
+#     carrier, 'tools/pre-execute', exec,
+#     () => Promise.resolve<PreToolDecision>({ kind: 'allow' }),
+#   )
+#   const askResolution = gate.kind === 'ask' ? await this.serviceAsk(exec, gate) : …
+#   const denialReason = decision.kind === 'allow' ? this.guardReason(exec) : decision.reason
+#                                 (packages/core/tools/src/index.ts:1505-1508, :1519)
+#
+# A `deny` from the waterfall materializes an error result and returns before the
+# `dispatch` stage (:1521-1532), so the tool body never runs. A monotonic guard is
+# consulted at :1519 — that is, *after* an `ask` has already gone to the operator
+# (:1509-1510) — so a guarded command is put to the operator for approval and
+# refused only once they have answered. Refusing in the waterfall refuses before
+# the question is asked, and `{ prepend: true }` keeps this listener ahead of other
+# policy listeners.
+#
+# This patch mounts the guard, and changes nothing else. It refuses two things,
+# both of them facts about the text rather than guesses about intent:
+#
+#   - an automatic-variable collision: a read-only automatic name
+#     (`$home`, `$pwd`, `$error`, `$env`, …) assigned, and then used as the operand
+#     of a recursive or forced deletion — the operand holds the runtime's value,
+#     not the one the line appears to name.
+#   - a protected location: a recursive or forced deletion whose operand is a home
+#     reference (`$HOME`, `$home`, `~`, `$env:USERPROFILE`) or a filesystem root.
+#
+# It deliberately does not refuse recursive forced deletion of an ordinary
+# variable, `rm -rf "$BUILD_DIR"` included, and does not judge paths by how
+# sensitive they look. A guard that refuses ordinary work gets unmounted, and an
+# unmounted guard protects nothing. `mode: 'report'` logs the same findings
+# without refusing, and the `destructive_command_check` tool answers the same
+# question on demand, without running anything.
+
+- insert:
+    - id: destructive-command-guard
+      name: '@argszero/dsh-destructive-command-guard'
