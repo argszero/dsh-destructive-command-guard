@@ -41,7 +41,7 @@ text catches it — and why a rule anchored to that fact does.
 ## Install
 
 ```sh
-npm install @argszero/dsh-destructive-command-guard@0.1.0
+npm install @argszero/dsh-destructive-command-guard@0.1.1
 ```
 
 Then mount it. The package ships a bundle patch
